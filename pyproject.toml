@@ -6,5 +6,9 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "pybit>=5.14.0",
+    "pytest>=9.0.2",
     "typer>=0.24.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
