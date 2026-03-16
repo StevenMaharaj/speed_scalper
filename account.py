@@ -11,7 +11,13 @@ class AccountDataStreamer:
                 symbol: Position(
                     symbol=symbol,
                     quantity=0.0,
+                    avg_price=0.0,
+                    current_price=0.0,
                 )
                 for symbol in symbols
-            }
+            },
+            "orders": {
+                symbol: [] for symbol in symbols
+            },
+
         }
