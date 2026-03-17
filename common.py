@@ -36,6 +36,19 @@ class Orders:
             self.bids = [o for o in self.bids if o != order]
         else:
             self.asks = [o for o in self.asks if o != order]
+    
+class OrderManager:
+    def __init__(self, symbols: list[str]):
+        self.orders: dict[str, Orders] = {symbol: Orders(symbol) for symbol in symbols}
+
+    def add_order(self, order: Order):
+        if order.symbol not in self.orders:
+            self.orders[order.symbol] = Orders(order.symbol)
+        self.orders[order.symbol].add_order(order)
+
+    def delete_order(self, order: Order):
+        if order.symbol in self.orders:
+            self.orders[order.symbol].delete_order(order)
 
 @dataclass(slots=True)
 class Position:
@@ -63,6 +76,21 @@ class Position:
     @property
     def side(self) -> str:
         return "Long" if self.quantity > 0 else "Short"
+
+
+class Positions:
+    def __init__(self, symbols: list[str]):
+        self.positions: dict[str, Position] = {symbol: Position(symbol, 0.0, 0.0, 0.0) for symbol in symbols}
+
+    def add_position(self, symbol: str, quantity: float, price: float):
+        if symbol not in self.positions:
+            self.positions[symbol] = Position(symbol, quantity, price, price)
+        else:
+            self.positions[symbol].add_position(quantity, price)
+
+    def update_current_price(self, symbol: str, price: float):
+        if symbol in self.positions:
+            self.positions[symbol].update_current_price(price)
 
 
 

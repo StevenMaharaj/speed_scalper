@@ -7,8 +7,14 @@ requires-python = ">=3.13"
 dependencies = [
     "pybit>=5.14.0",
     "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "python-dotenv>=1.2.2",
     "typer>=0.24.1",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=. --cov-report=term-missing"
+
+[tool.coverage.run]
+omit = [".venv/*", "tests/*"]

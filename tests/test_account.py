@@ -1,4 +1,4 @@
-from ..account import Position
+from ..common import Position
 
 
 def test_add_position():
@@ -11,7 +11,7 @@ def test_add_position():
     position.add_position(quantity=0.05, price=160.0)
 
     assert position.quantity == 0.15
-    assert position.avg_price == round((150.0 * 0.10 + 160.0 * 0.05) / 0.15,8)
+    assert position.avg_price == round((150.0 * 0.10 + 160.0 * 0.05) / 0.15, 8)
 
 
 def test_reduce_position():
