@@ -1,8 +1,8 @@
 import asyncio
 from unittest.mock import MagicMock
 
-from ..account import AccountDataStreamer
-from ..common import Position
+from account import AccountDataStreamer
+from common import Position
 
 
 def test_add_position():
@@ -31,22 +31,7 @@ def test_reduce_position():
     assert position.avg_price == (150.0 * 10 + 160.0 * (-5)) / 5
 
 
-FILLED_MESSAGE = {
-    "topic": "order",
-    "data": [{
-        "symbol": "ETHUSDT",
-        "side": "Sell",
-        "orderStatus": "Filled",
-        "orderType": "Market",
-        "qty": "0.01",
-        "price": "2310.53",
-        "avgPrice": "2357.47",
-        "cumExecQty": "0.01",
-    }]
-}
-
-
-def test_filled_order_updates_position():
+def test_filled_order_updates_position(order_new_message, order_filled_message):
     queue = asyncio.Queue()
     streamer = AccountDataStreamer(
         symbols=["ETHUSDT"],
@@ -54,8 +39,26 @@ def test_filled_order_updates_position():
     )
     streamer.loop = MagicMock()
 
-    streamer.on_message(FILLED_MESSAGE)
+    streamer.on_message(order_new_message)
+    streamer.on_message(order_filled_message)
 
     position = streamer.account_data["positions"].positions["ETHUSDT"]
-    assert position.quantity == -0.01
-    assert position.avg_price == 2357.47
+    assert position.quantity == 0.01
+    assert position.avg_price == 2359.5
+
+
+def test_cancelled_order_removed_from_orders(order_new_message, order_cancelled_message):
+    queue = asyncio.Queue()
+    streamer = AccountDataStreamer(
+        symbols=["ETHUSDT"],
+        account_data_queue=queue,
+    )
+    streamer.loop = MagicMock()
+
+    streamer.on_message(order_new_message)
+    streamer.on_message(order_cancelled_message)
+
+    orders = streamer.account_data["orders"].orders["ETHUSDT"]
+    assert orders.bids == []
+    position = streamer.account_data["positions"].positions["ETHUSDT"]
+    assert position.quantity == 0.0

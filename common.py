@@ -33,9 +33,9 @@ class Orders:
         if self.asks is None:
             raise ValueError("Asks list is not initialized")
         if order.order_side == "Buy":
-            self.bids = [o for o in self.bids if o != order]
+            self.bids = [o for o in self.bids if not (o.symbol == order.symbol and o.price == order.price)]
         else:
-            self.asks = [o for o in self.asks if o != order]
+            self.asks = [o for o in self.asks if not (o.symbol == order.symbol and o.price == order.price)]
     
 class OrderManager:
     def __init__(self, symbols: list[str]):

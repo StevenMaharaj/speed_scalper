@@ -60,7 +60,9 @@ class AccountDataStreamer:
                 avg_price = float(data["avgPrice"])
                 if data["side"] == "Sell":
                     qty = -qty
-                self.account_data["positions"].add_position(data["symbol"], qty, avg_price)
+                self.account_data["positions"].add_position(
+                    data["symbol"], qty, avg_price
+                )
                 self.account_data["orders"].delete_order(order)
             elif order.order_status in ("Cancelled", "Rejected"):
                 self.account_data["orders"].delete_order(order)

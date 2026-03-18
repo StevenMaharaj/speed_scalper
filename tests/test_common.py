@@ -1,4 +1,4 @@
-from ..common import Order, OrderManager
+from common import Order, OrderManager
 
 
 def test_order_manager():
