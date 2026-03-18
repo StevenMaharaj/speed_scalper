@@ -37,13 +37,15 @@ class AccountDataStreamer:
 
     async def stream(self):
         self.loop = asyncio.get_event_loop()
-        ws = WebSocket(
+        self._stop = asyncio.Event()
+        self.ws = WebSocket(
             channel_type="private",
             testnet=False,
             api_key=self.api_key,
             api_secret=self.api_secret,
         )
-        ws.order_stream(self.on_message)
+        self.ws.order_stream(self.on_message)
+        await self._stop.wait()
 
     def handle_order_topic(self, message):
         for data in message.get("data", []):

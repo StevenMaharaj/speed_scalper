@@ -36,8 +36,10 @@ class MarketDataStreamer:
             )  # Update the price with the best bid
 
     async def _conn(self):
-        ws = WebSocket(channel_type="linear", testnet=False)  # Use testnet for testing
-        ws.orderbook_stream(1, self.symbols, self.on_message)
+        self._stop = asyncio.Event()
+        self.ws = WebSocket(channel_type="linear", testnet=False)
+        self.ws.orderbook_stream(1, self.symbols, self.on_message)
+        await self._stop.wait()
 
 
 async def receive_market_data(market_data_queue: Queue):
