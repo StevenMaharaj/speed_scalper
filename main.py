@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import pkgutil
 import inspect
@@ -28,7 +29,7 @@ def run(strategy_name: str = typer.Argument(..., help="Name of the strategy clas
         typer.echo(f"Unknown strategy '{strategy_name}'. Available: {available}", err=True)
         raise typer.Exit(1)
     instance: Strategy = strategies[strategy_name]()
-    instance.run_strategy()
+    asyncio.run(instance.run_strategy())
 
 
 if __name__ == "__main__":
