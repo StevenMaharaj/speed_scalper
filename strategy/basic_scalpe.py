@@ -24,13 +24,16 @@ class BasicScalp(Strategy):
         )
         self.prices = {symbol: 0.0 for symbol in self.symbols}
         self.account_data = None
+        self._ready = asyncio.Event()
 
     async def run_strategy(self) -> None:
         print("Running Basic Scalpe Strategy")
         ob_task = asyncio.create_task(self.streamer.stream())
         account_task = asyncio.create_task(self.account_streamer.stream())
         recv_task = asyncio.create_task(self.recv())
-        await asyncio.gather(ob_task, account_task, recv_task)
+        self._ready.set()
+        tick_task = asyncio.create_task(self.on_tick())
+        await asyncio.gather(ob_task, account_task, recv_task, tick_task)
 
     async def recv(self):
         while True:
@@ -49,3 +52,9 @@ class BasicScalp(Strategy):
                 else:
                     self.prices.update(msg)
                     print(f"Received market data: {self.prices}")
+
+    async def on_tick(self):
+        await self._ready.wait()
+        while True:
+            pass
+
