@@ -33,10 +33,19 @@ class Orders:
         if self.asks is None:
             raise ValueError("Asks list is not initialized")
         if order.order_side == "Buy":
-            self.bids = [o for o in self.bids if not (o.symbol == order.symbol and o.price == order.price)]
+            self.bids = [
+                o
+                for o in self.bids
+                if not (o.symbol == order.symbol and o.price == order.price)
+            ]
         else:
-            self.asks = [o for o in self.asks if not (o.symbol == order.symbol and o.price == order.price)]
-    
+            self.asks = [
+                o
+                for o in self.asks
+                if not (o.symbol == order.symbol and o.price == order.price)
+            ]
+
+
 class OrderManager:
     def __init__(self, symbols: list[str]):
         self.orders: dict[str, Orders] = {symbol: Orders(symbol) for symbol in symbols}
@@ -49,6 +58,7 @@ class OrderManager:
     def delete_order(self, order: Order):
         if order.symbol in self.orders:
             self.orders[order.symbol].delete_order(order)
+
 
 @dataclass(slots=True)
 class Position:
@@ -80,7 +90,9 @@ class Position:
 
 class Positions:
     def __init__(self, symbols: list[str]):
-        self.positions: dict[str, Position] = {symbol: Position(symbol, 0.0, 0.0, 0.0) for symbol in symbols}
+        self.positions: dict[str, Position] = {
+            symbol: Position(symbol, 0.0, 0.0, 0.0) for symbol in symbols
+        }
 
     def add_position(self, symbol: str, quantity: float, price: float):
         if symbol not in self.positions:
@@ -91,6 +103,3 @@ class Positions:
     def update_current_price(self, symbol: str, price: float):
         if symbol in self.positions:
             self.positions[symbol].update_current_price(price)
-
-
-

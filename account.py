@@ -36,6 +36,7 @@ class AccountDataStreamer:
         )
 
     async def stream(self):
+        print("Starting account data stream...")
         self.loop = asyncio.get_event_loop()
         self._stop = asyncio.Event()
         self.ws = WebSocket(

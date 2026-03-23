@@ -11,6 +11,7 @@ class MarketDataStreamer:
         self.market_data_queue = market_data_queue
 
     async def stream(self):
+        print("Starting market data stream...")
         t1 = asyncio.create_task(self._conn())
         t2 = asyncio.create_task(self.push_market_data())
         await asyncio.gather(t1, t2)
