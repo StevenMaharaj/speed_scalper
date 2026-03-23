@@ -10,6 +10,9 @@ class Order:
     order_side: str  # "Buy" or "Sell"
     order_status: str  # "New", "Filled", "Partially Filled", "Cancelled", etc.
 
+    def __str__(self) -> str:
+        return f"{self.order_side} {self.quantity} {self.symbol} at {self.price} ({self.order_type}, {self.order_status})"
+
 
 @dataclass
 class Orders:
@@ -44,6 +47,15 @@ class Orders:
                 for o in self.asks
                 if not (o.symbol == order.symbol and o.price == order.price)
             ]
+
+    def __str__(self) -> str:
+        bids_str = (
+            "\n".join(str(order) for order in self.bids) if self.bids else "No bids"
+        )
+        asks_str = (
+            "\n".join(str(order) for order in self.asks) if self.asks else "No asks"
+        )
+        return f"Orders for {self.symbol}:\nBids:\n{bids_str}\nAsks:\n{asks_str}"
 
 
 class OrderManager:
@@ -87,6 +99,9 @@ class Position:
     def side(self) -> str:
         return "Long" if self.quantity > 0 else "Short"
 
+    def __str__(self) -> str:
+        return f"{self.side} {self.quantity} {self.symbol} at avg price {self.avg_price}, current price {self.current_price}, unrealized PnL: {self.unrealized_pnl()}"
+
 
 class Positions:
     def __init__(self, symbols: list[str]):
@@ -103,3 +118,6 @@ class Positions:
     def update_current_price(self, symbol: str, price: float):
         if symbol in self.positions:
             self.positions[symbol].update_current_price(price)
+
+    def __str__(self) -> str:
+        return "\n".join(str(pos) for pos in self.positions.values())
