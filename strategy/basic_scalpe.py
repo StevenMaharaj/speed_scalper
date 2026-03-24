@@ -5,6 +5,7 @@ from asyncio import Queue
 from account import AccountDataStreamer
 from orderbook import MarketDataStreamer
 from strategy.strategy import Strategy
+from techan.price_buffer import PriceBuffer
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "XRPUSDT"]
 
@@ -25,6 +26,7 @@ class BasicScalp(Strategy):
             account_data_queue=self.account_data_queue,
         )
         self.prices = {symbol: 0.0 for symbol in self.symbols}
+        self.price_buffers = {symbol: PriceBuffer(symbol,50) for symbol in self.symbols}
         self.account_data = None
 
     def load_config(self) -> dict:
@@ -54,9 +56,21 @@ class BasicScalp(Strategy):
             msg = await self.account_data_queue.get()
             self.account_data = msg
 
+    def _update_price_buffers(self):
+        for symbol in self.symbols:
+            self.price_buffers[symbol].add_price(self.prices[symbol])
+
     async def strategy_loop(self):
         await asyncio.sleep(5)  # Wait for initial data to populate
         while True:
             await asyncio.sleep(2)
+            self._update_price_buffers()
+
             print(f"Current prices: {self.prices}")
             print(f"Account data: {self.account_data}")
+
+
+    def on_tick(self, symbol: str):
+        # This method can be called by the market data streamer when a new tick is received
+        
+        # pass
