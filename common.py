@@ -9,6 +9,7 @@ class Order:
     order_type: str  # "Market" or "Limit"
     order_side: str  # "Buy" or "Sell"
     order_status: str  # "New", "Filled", "Partially Filled", "Cancelled", etc.
+    order_id: str = ""
 
     def __str__(self) -> str:
         return f"{self.order_side} {self.quantity} {self.symbol} at {self.price} ({self.order_type}, {self.order_status})"
