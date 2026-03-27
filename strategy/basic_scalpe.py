@@ -2,12 +2,15 @@ import asyncio
 import json
 from asyncio import Queue
 
+from fed_logger import get_logger
 from account import AccountDataStreamer
 from common import Order, Position
 from orderbook import MarketDataStreamer
 from strategy.strategy import Strategy
 from techan.price_buffer import PriceBuffer
 from trade import Trader
+
+log = get_logger(__name__)
 
 SYMBOLS = [
     "BTCUSDT",
@@ -16,6 +19,7 @@ SYMBOLS = [
 
 class BasicScalp(Strategy):
     def __init__(self):
+        log.info(10*"="+"Initializing Basic Scalper Strategy"+10*"=")
         self.config = self.load_config()
         self.symbols = SYMBOLS
 
@@ -42,7 +46,6 @@ class BasicScalp(Strategy):
             return json.load(f)
 
     async def run_strategy(self) -> None:
-        print("Running Basic Scalpe Strategy")
         ob_task = asyncio.create_task(self.streamer.stream())
         account_task = asyncio.create_task(self.account_streamer.stream())
         trader_task = asyncio.create_task(self.trader.run())
@@ -166,6 +169,7 @@ class BasicScalp(Strategy):
             order_id=order.order_id,
         )
         await self.trader_queue.put(cancel)
+        log.info(f"Queued cancel {order.order_id} @ {order.price} on {order.symbol}")
 
     async def close_position(self, position: Position):
         # Implement logic to close the position, e.g., by placing a market order in the opposite direction
@@ -182,6 +186,9 @@ class BasicScalp(Strategy):
             order_status="New",
         )
         await self.trader_queue.put(trade)
+        log.info(
+            f"Queued market close position: {trade.order_side} {trade.quantity} {trade.symbol}"
+        )
 
     async def queue_bracket(self, symbol: str, quantity: float, price: float, offset: float):
         await self.queue_limit_order(symbol, quantity, price - offset, "Buy")
@@ -197,5 +204,8 @@ class BasicScalp(Strategy):
             order_status="New",
         )
         await self.trader_queue.put(order)
+        log.info(
+            f"Queued {side} limit order for {quantity} {symbol} @ {round(price, 2)}"
+        )
 
     
