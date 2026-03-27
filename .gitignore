@@ -12,3 +12,4 @@ wheels/
 .env
 .pytest_cache
 .coverage
+claude_session.txt
