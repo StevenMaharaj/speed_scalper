@@ -9,7 +9,9 @@ from strategy.strategy import Strategy
 from techan.price_buffer import PriceBuffer
 from trade import Trader
 
-SYMBOLS = ["BTCUSDT", "ETHUSDT", "XRPUSDT"]
+SYMBOLS = [
+    "BTCUSDT",
+]
 
 
 class BasicScalp(Strategy):
@@ -45,9 +47,11 @@ class BasicScalp(Strategy):
         account_task = asyncio.create_task(self.account_streamer.stream())
         trader_task = asyncio.create_task(self.trader.run())
         recv_task = asyncio.create_task(self.recv())
+        order_cleaner_task = asyncio.create_task(self.order_cleaner())
         strategy_task = asyncio.create_task(self.strategy_loop())
+
         await asyncio.gather(
-            ob_task, account_task, recv_task, trader_task, strategy_task
+            ob_task, account_task, recv_task, trader_task,order_cleaner_task, strategy_task
         )
 
     async def recv(self):
@@ -69,14 +73,30 @@ class BasicScalp(Strategy):
         for symbol in self.symbols:
             self.price_buffers[symbol].add_price(self.prices[symbol])
 
+    async def strategy_setup(self,symbol: str):
+        # cancel all existing orders on startup
+        order = Order(
+            symbol=symbol,
+            quantity=0.0,
+            price=0.0,
+            order_type="CancelAll",
+            order_side="",
+            order_status="New",
+        )
+        await self.trader_queue.put(order)
+        cfg = self.config[symbol]
+        price = self.prices[symbol]
+        offset = (cfg["fee_bps"] + cfg["bps"] * 3) / 10000 * price
+        await self.queue_bracket(symbol, self.config[symbol]["qty"], self.prices[symbol], offset)
+
     async def strategy_loop(self):
         await asyncio.sleep(5)  # Wait for initial data to populate
+        for symbol in self.symbols:
+            await self.strategy_setup(symbol)
+        
         while True:
             await asyncio.sleep(1)
             self._update_price_buffers()
-
-            print(f"Current prices: {self.prices}")
-            print(f"Account data: {self.account_data}")
 
             for symbol in self.symbols:
                 await self.on_tick(symbol)
@@ -107,51 +127,45 @@ class BasicScalp(Strategy):
 
         # No orders, no position -> place bracket
         if not has_bids and not has_asks and not has_position:
-            buy = Order(
-                symbol=symbol,
-                quantity=cfg["qty"],
-                price=round(price - offset, 2),
-                order_type="Limit",
-                order_side="Buy",
-                order_status="New",
-            )
-            sell = Order(
-                symbol=symbol,
-                quantity=cfg["qty"],
-                price=round(price + offset, 2),
-                order_type="Limit",
-                order_side="Sell",
-                order_status="New",
-            )
-            await self.trader_queue.put(buy)
-            await self.trader_queue.put(sell)
+            await self.queue_bracket(symbol, cfg["qty"], price, offset)
             return
 
-        # BUY filled (long position), no sell order -> place sell
+        # BUY filled (long position), no sell order -> place sell, replace buy below
         if position.quantity > 0 and not has_asks:
-            sell = Order(
-                symbol=symbol,
-                quantity=cfg["qty"],
-                price=round(price + offset, 2),
-                order_type="Limit",
-                order_side="Sell",
-                order_status="New",
-            )
-            await self.trader_queue.put(sell)
+            await self.queue_bracket(symbol, cfg["qty"], price, offset)
             return
 
-        # SELL filled (short position), no buy order -> place buy
+        # SELL filled (short position), no buy order -> place buy, replace sell above
         if position.quantity < 0 and not has_bids:
-            buy = Order(
-                symbol=symbol,
-                quantity=cfg["qty"],
-                price=round(price - offset, 2),
-                order_type="Limit",
-                order_side="Buy",
-                order_status="New",
-            )
-            await self.trader_queue.put(buy)
+            await self.queue_bracket(symbol, cfg["qty"], price, offset)
             return
+
+    async def order_cleaner(self):
+        while True:
+            while self.account_data is None:
+                await asyncio.sleep(1)
+            for symbol in self.symbols:
+                orders = self.account_data["orders"].orders[symbol]
+                await asyncio.sleep(5)
+                if orders.bids and len(orders.bids) >= 2:
+                    outermost = min(orders.bids, key=lambda o: o.price)
+                    await self.queue_cancel(outermost)
+
+                if orders.asks and len(orders.asks) >= 2:
+                    outermost = max(orders.asks, key=lambda o: o.price)
+                    await self.queue_cancel(outermost)
+
+    async def queue_cancel(self, order: Order):
+        cancel = Order(
+            symbol=order.symbol,
+            quantity=0.0,
+            price=0.0,
+            order_type="Cancel",
+            order_side=order.order_side,
+            order_status="New",
+            order_id=order.order_id,
+        )
+        await self.trader_queue.put(cancel)
 
     async def close_position(self, position: Position):
         # Implement logic to close the position, e.g., by placing a market order in the opposite direction
@@ -168,3 +182,20 @@ class BasicScalp(Strategy):
             order_status="New",
         )
         await self.trader_queue.put(trade)
+
+    async def queue_bracket(self, symbol: str, quantity: float, price: float, offset: float):
+        await self.queue_limit_order(symbol, quantity, price - offset, "Buy")
+        await self.queue_limit_order(symbol, quantity, price + offset, "Sell")
+
+    async def queue_limit_order(self, symbol: str, quantity: float, price: float, side: str):
+        order = Order(
+            symbol=symbol,
+            quantity=quantity,
+            price=round(price, 2),
+            order_type="Limit",
+            order_side=side,
+            order_status="New",
+        )
+        await self.trader_queue.put(order)
+
+    
