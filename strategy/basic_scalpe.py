@@ -15,6 +15,7 @@ log = get_logger(__name__)
 SYMBOLS = [
     "BTCUSDT",
 ]
+TICKER_INTERVAL = 5  # seconds
 
 
 class BasicScalp(Strategy):
@@ -98,10 +99,13 @@ class BasicScalp(Strategy):
             await self.strategy_setup(symbol)
         
         while True:
-            await asyncio.sleep(1)
+            await asyncio.sleep(TICKER_INTERVAL)
             self._update_price_buffers()
 
             for symbol in self.symbols:
+                assert self.account_data is not None
+                orders = self.account_data["orders"].orders[symbol]
+                # print(f"Orders for {symbol}: {orders}")
                 await self.on_tick(symbol)
 
     async def on_tick(self, symbol: str):
@@ -134,12 +138,12 @@ class BasicScalp(Strategy):
             return
 
         # BUY filled (long position), no sell order -> place sell, replace buy below
-        if position.quantity > 0 and not has_asks:
+        if not has_asks:
             await self.queue_bracket(symbol, cfg["qty"], price, offset)
             return
 
         # SELL filled (short position), no buy order -> place buy, replace sell above
-        if position.quantity < 0 and not has_bids:
+        if not has_bids:
             await self.queue_bracket(symbol, cfg["qty"], price, offset)
             return
 
@@ -152,10 +156,12 @@ class BasicScalp(Strategy):
                 await asyncio.sleep(5)
                 if orders.bids and len(orders.bids) >= 2:
                     outermost = min(orders.bids, key=lambda o: o.price)
+                    orders.delete_order(outermost)
                     await self.queue_cancel(outermost)
 
                 if orders.asks and len(orders.asks) >= 2:
                     outermost = max(orders.asks, key=lambda o: o.price)
+                    orders.delete_order(outermost)
                     await self.queue_cancel(outermost)
 
     async def queue_cancel(self, order: Order):

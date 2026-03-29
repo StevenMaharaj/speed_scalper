@@ -12,7 +12,7 @@ class Order:
     order_id: str = ""
 
     def __str__(self) -> str:
-        return f"{self.order_side} {self.quantity} {self.symbol} at {self.price} ({self.order_type}, {self.order_status})"
+        return f"{self.order_side} {self.quantity} {self.symbol} at {self.price} ({self.order_type}, {self.order_status}) [ID: {self.order_id}]"
 
 
 @dataclass
@@ -37,17 +37,9 @@ class Orders:
         if self.asks is None:
             raise ValueError("Asks list is not initialized")
         if order.order_side == "Buy":
-            self.bids = [
-                o
-                for o in self.bids
-                if not (o.symbol == order.symbol and o.price == order.price)
-            ]
+            self.bids = [o for o in self.bids if o.order_id != order.order_id]
         else:
-            self.asks = [
-                o
-                for o in self.asks
-                if not (o.symbol == order.symbol and o.price == order.price)
-            ]
+            self.asks = [o for o in self.asks if o.order_id != order.order_id]
 
     def __str__(self) -> str:
         bids_str = (

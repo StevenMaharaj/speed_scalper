@@ -14,7 +14,7 @@ def get_logger(name: str) -> logging.Logger:
 
     formatter = logging.Formatter(
         "%(asctime)s | %(name)s | %(levelname)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+        datefmt="%Y-%m-%d %H:%M:%S.%f",
     )
 
     file_handler = TimedRotatingFileHandler(

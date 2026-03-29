@@ -7,6 +7,9 @@ from dotenv import load_dotenv
 from pybit.unified_trading import WebSocket
 
 from common import Order, OrderManager, Positions
+from fed_logger import get_logger
+
+log = get_logger(__name__)
 
 
 class AccountDataStreamer:
@@ -27,7 +30,7 @@ class AccountDataStreamer:
         return api_key, api_secret
 
     def on_message(self, message):
-        print(f"Received message: {message}")
+        # print(f"Received message: {message}")
         if message.get("topic") != "order":
             return
         self.handle_order_topic(message)
@@ -57,7 +60,9 @@ class AccountDataStreamer:
                 order_type=data["orderType"],
                 order_side=data["side"],
                 order_status=data["orderStatus"],
+                order_id=data["orderId"],
             )
+            log.info(f"Processing order update: {order}")
             if order.order_status == "Filled":
                 qty = float(data["cumExecQty"])
                 avg_price = float(data["avgPrice"])
@@ -71,6 +76,13 @@ class AccountDataStreamer:
                 self.account_data["orders"].delete_order(order)
             else:
                 self.account_data["orders"].add_order(order)
+
+        self._log_account_data()
+
+        # log.info(f"Updated account data: {self.account_data}")
+    def _log_account_data(self):
+        log.info(f"Account data: {self.account_data['positions']} | {self.account_data['orders']}")
+
 
 
 async def receive_order_data(market_data_queue: Queue):

@@ -3,9 +3,13 @@ import os
 from asyncio import Queue
 
 from dotenv import load_dotenv
+from pybit.exceptions import InvalidRequestError
 from pybit.unified_trading import HTTP
 
 from common import Order
+from fed_logger import get_logger
+
+log = get_logger(__name__)
 
 CATEGORY = "linear"
 
@@ -27,7 +31,7 @@ class Trader:
     async def run(self):
         while True:
             order: Order = await self.trade_queue.get()
-            print(f"Received trade signal: {order}")
+            log.info(f"Received trade signal: {order}")
 
             if order.order_type == "Market":
                 self.market_order(order)
@@ -38,11 +42,11 @@ class Trader:
             elif order.order_type == "CancelAll":
                 self.cancel_all_orders(order)
             else:
-                print(f"Unknown order type: {order.order_type}")
+                log.warning(f"Unknown order type: {order.order_type}")
 
     def market_order(self, order: Order):
         if order.order_type != "Market":
-            print(f"Invalid order type for market order: {order.order_type}")
+            log.warning(f"Invalid order type for market order: {order.order_type}")
             return
         result = self.session.place_order(
             category=CATEGORY,
@@ -51,12 +55,12 @@ class Trader:
             orderType="Market",
             qty=str(order.quantity),
         )
-        print(f"Market order result: {result}")
+        log.info(f"Market order result: {result}")
         return result
 
     def limit_order(self, order: Order):
         if order.order_type != "Limit":
-            print(f"Invalid order type for limit order: {order.order_type}")
+            log.warning(f"Invalid order type for limit order: {order.order_type}")
             return
         result = self.session.place_order(
             category=CATEGORY,
@@ -66,24 +70,28 @@ class Trader:
             qty=str(order.quantity),
             price=str(order.price),
         )
-        print(f"Limit order result: {result}")
+        log.info(f"Limit order result: {result}")
         return result
 
     def cancel_order(self, order: Order):
-        result = self.session.cancel_order(
-            category=CATEGORY,
-            symbol=order.symbol,
-            orderId=order.order_id,
-        )
-        print(f"Cancel order result: {result}")
-        return result
+        try:
+            result = self.session.cancel_order(
+                category=CATEGORY,
+                symbol=order.symbol,
+                orderId=order.order_id,
+            )
+            log.info(f"Cancel order result: {result}")
+            return result
+        except InvalidRequestError as e:
+            log.warning(f"Cancel order failed (order may already be gone): {e}")
+            return None
 
     def cancel_all_orders(self, order: Order):
         result = self.session.cancel_all_orders(
             category=CATEGORY,
             symbol=order.symbol,
         )
-        print(f"Cancel all orders result: {result}")
+        log.info(f"Cancel all orders result: {result}")
         return result
 
 
