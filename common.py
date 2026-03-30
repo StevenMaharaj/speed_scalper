@@ -10,9 +10,10 @@ class Order:
     order_side: str  # "Buy" or "Sell"
     order_status: str  # "New", "Filled", "Partially Filled", "Cancelled", etc.
     order_id: str = ""
+    client_order_id: str = ""
 
     def __str__(self) -> str:
-        return f"{self.order_side} {self.quantity} {self.symbol} at {self.price} ({self.order_type}, {self.order_status}) [ID: {self.order_id}]"
+        return f"{self.order_side} {self.quantity} {self.symbol} at {self.price} ({self.order_type}, {self.order_status}) [ID: {self.order_id}] [CID: {self.client_order_id}]"
 
 
 @dataclass
@@ -32,14 +33,12 @@ class Orders:
             self.asks.append(order)
 
     def delete_order(self, order: Order):
-        if self.bids is None:
-            raise ValueError("Bids list is not initialized")
-        if self.asks is None:
-            raise ValueError("Asks list is not initialized")
         if order.order_side == "Buy":
-            self.bids = [o for o in self.bids if o.order_id != order.order_id]
+            if self.bids is not None:
+                self.bids = [o for o in self.bids if o.order_id != order.order_id]
         else:
-            self.asks = [o for o in self.asks if o.order_id != order.order_id]
+            if self.asks is not None:
+                self.asks = [o for o in self.asks if o.order_id != order.order_id]
 
     def __str__(self) -> str:
         bids_str = (

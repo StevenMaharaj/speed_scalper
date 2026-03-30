@@ -48,30 +48,39 @@ class Trader:
         if order.order_type != "Market":
             log.warning(f"Invalid order type for market order: {order.order_type}")
             return
-        result = self.session.place_order(
-            category=CATEGORY,
-            symbol=order.symbol,
-            side=order.order_side,
-            orderType="Market",
-            qty=str(order.quantity),
-        )
-        log.info(f"Market order result: {result}")
-        return result
+        try:
+            result = self.session.place_order(
+                category=CATEGORY,
+                symbol=order.symbol,
+                side=order.order_side,
+                orderType="Market",
+                qty=str(order.quantity),
+            )
+            log.info(f"Market order result: {result}")
+            return result
+        except Exception as e:
+            log.warning(f"Market order failed: {e}")
+            return None
 
     def limit_order(self, order: Order):
         if order.order_type != "Limit":
             log.warning(f"Invalid order type for limit order: {order.order_type}")
             return
-        result = self.session.place_order(
-            category=CATEGORY,
-            symbol=order.symbol,
-            side=order.order_side,
-            orderType="Limit",
-            qty=str(order.quantity),
-            price=str(order.price),
-        )
-        log.info(f"Limit order result: {result}")
-        return result
+        try:
+            result = self.session.place_order(
+                category=CATEGORY,
+                symbol=order.symbol,
+                side=order.order_side,
+                orderType="Limit",
+                qty=str(order.quantity),
+                price=str(order.price),
+                orderLinkId=order.client_order_id,
+            )
+            log.info(f"Limit order result: {result}")
+            return result
+        except Exception as e:
+            log.warning(f"Limit order failed: {e}")
+            return None
 
     def cancel_order(self, order: Order):
         try:
@@ -87,12 +96,16 @@ class Trader:
             return None
 
     def cancel_all_orders(self, order: Order):
-        result = self.session.cancel_all_orders(
-            category=CATEGORY,
-            symbol=order.symbol,
-        )
-        log.info(f"Cancel all orders result: {result}")
-        return result
+        try:
+            result = self.session.cancel_all_orders(
+                category=CATEGORY,
+                symbol=order.symbol,
+            )
+            log.info(f"Cancel all orders result: {result}")
+            return result
+        except Exception as e:
+            log.warning(f"Cancel all orders failed: {e}")
+            return None
 
 
 async def produce_trade(market_data_queue: Queue):

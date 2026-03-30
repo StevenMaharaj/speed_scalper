@@ -1,7 +1,7 @@
 .PHONY: run test
 
 run:
-	python main.py BasicScalp
+	python main.py AdSpread2
 
 test:
 	pytest

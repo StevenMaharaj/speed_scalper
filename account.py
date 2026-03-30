@@ -61,6 +61,7 @@ class AccountDataStreamer:
                 order_side=data["side"],
                 order_status=data["orderStatus"],
                 order_id=data["orderId"],
+                client_order_id=data.get("orderLinkId", ""),
             )
             log.info(f"Processing order update: {order}")
             if order.order_status == "Filled":
